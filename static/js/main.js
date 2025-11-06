@@ -904,6 +904,120 @@ const Analytics = {
     }
 };
 
+// ===== Authentication Functionality =====
+const Auth = {
+    init() {
+        this.setupLogoutButtons();
+        this.setupSessionTimeout();
+    },
+
+    setupLogoutButtons() {
+        // Handle logout button clicks
+        const logoutButtons = document.querySelectorAll('[data-action="logout"]');
+        logoutButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleLogout();
+            });
+        });
+
+        // Handle logout link in navigation
+        const logoutLinks = document.querySelectorAll('a[href*="logout"]');
+        logoutLinks.forEach(link => {
+            if (!link.hasAttribute('data-action')) {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleLogout();
+                });
+            }
+        });
+    },
+
+    async handleLogout() {
+        try {
+            Utils.showLoading();
+
+            // Attempt AJAX logout first
+            const response = await Utils.request('/api/logout/', {
+                method: 'POST',
+                body: JSON.stringify({})
+            });
+
+            // Show success message
+            Utils.showAlert(response.message || 'You have been successfully logged out.', 'success');
+
+            // Redirect to landing page after a short delay
+            setTimeout(() => {
+                window.location.href = response.redirect_url || '/';
+            }, 1000);
+
+        } catch (error) {
+            // Fallback to traditional logout if AJAX fails
+            console.log('AJAX logout failed, falling back to traditional logout');
+            window.location.href = '/logout/';
+        } finally {
+            Utils.hideLoading();
+        }
+    },
+
+    setupSessionTimeout() {
+        // Session timeout warning (30 minutes of inactivity)
+        let inactivityTimer;
+        const warningTime = 25 * 60 * 1000; // 25 minutes
+        const logoutTime = 30 * 60 * 1000; // 30 minutes
+
+        function resetTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                showSessionWarning();
+            }, warningTime);
+        }
+
+        function showSessionWarning() {
+            Utils.showAlert(
+                'Your session will expire in 5 minutes due to inactivity. Please save your work.',
+                'warning',
+                10000
+            );
+
+            // Logout after 5 more minutes
+            setTimeout(() => {
+                this.handleLogout();
+            }, logoutTime - warningTime);
+        }
+
+        // Reset timer on user activity
+        ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetTimer, true);
+        });
+
+        // Start timer
+        resetTimer();
+    },
+
+    // Check authentication status
+    async checkAuthStatus() {
+        try {
+            const response = await Utils.request('/api/auth/status/');
+            return response.authenticated;
+        } catch (error) {
+            // If request fails, assume not authenticated
+            return false;
+        }
+    },
+
+    // Auto-logout if authentication fails
+    async handleAuthError() {
+        const isAuthenticated = await this.checkAuthStatus();
+        if (!isAuthenticated) {
+            Utils.showAlert('Your session has expired. Please log in again.', 'warning');
+            setTimeout(() => {
+                window.location.href = '/login/';
+            }, 2000);
+        }
+    }
+};
+
 // ===== Initialize Application =====
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize components based on current page
