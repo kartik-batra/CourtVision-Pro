@@ -670,6 +670,24 @@ def api_export_case(request):
 
 
 @csrf_exempt
+def api_auth_status(request):
+    """Check authentication status endpoint"""
+    if request.user.is_authenticated:
+        return JsonResponse({
+            'authenticated': True,
+            'username': request.user.get_full_name() or request.user.username,
+            'user_id': request.user.id,
+            'is_staff': request.user.is_staff,
+            'last_login': request.user.last_login.isoformat() if request.user.last_login else None
+        })
+    else:
+        return JsonResponse({
+            'authenticated': False,
+            'message': _('No active session found.')
+        })
+
+
+@csrf_exempt
 @require_POST
 def api_logout(request):
     """AJAX logout endpoint for SPA-style logout"""
