@@ -1023,6 +1023,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize components based on current page
     const currentPage = document.body.dataset.page;
 
+    // Initialize authentication (always)
+    Auth.init();
+
     switch (currentPage) {
         case 'search':
             Search.init();
