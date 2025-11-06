@@ -10,7 +10,7 @@ urlpatterns = [
 
     # Authentication
     path('login/', auth_views.LoginView.as_view(template_name='legal_research/auth/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('logout/', views.logout_view, name='logout'),
 
     # Main application views
     path('dashboard/', views.dashboard, name='dashboard'),
