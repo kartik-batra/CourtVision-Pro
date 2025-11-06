@@ -53,5 +53,6 @@ urlpatterns = [
     path('api/notes/save/', views.api_save_note, name='api_save_note'),
     path('api/cases/save/', views.api_save_case, name='api_save_case'),
     path('api/cases/export/', views.api_export_case, name='api_export_case'),
+    path('api/logout/', views.api_logout, name='api_logout'),
     path('api/upload/process/', views.api_process_upload, name='api_process_upload'),
 ]
