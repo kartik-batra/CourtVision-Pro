@@ -670,6 +670,32 @@ def api_export_case(request):
 
 
 @csrf_exempt
+@require_POST
+def api_logout(request):
+    """AJAX logout endpoint for SPA-style logout"""
+    if request.user.is_authenticated:
+        # Get username for logging
+        username = request.user.get_full_name() or request.user.username
+
+        # Perform logout
+        logout(request)
+        request.session.flush()
+
+        return JsonResponse({
+            'success': True,
+            'message': _('You have been successfully logged out.'),
+            'username': username,
+            'redirect_url': reverse('legal_research:landing')
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'message': _('No active session found.'),
+            'redirect_url': reverse('legal_research:landing')
+        })
+
+
+@csrf_exempt
 def api_process_upload(request):
     """API endpoint to process file uploads"""
     return process_upload(request)
