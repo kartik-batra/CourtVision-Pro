@@ -1069,5 +1069,6 @@ window.CourtVisionPro = {
     CaseDetail,
     Customization,
     Upload,
-    Analytics
+    Analytics,
+    Auth
 };
