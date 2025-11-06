@@ -36,6 +36,34 @@ def landing_page(request):
     return render(request, 'legal_research/landing.html')
 
 
+def logout_view(request):
+    """Custom logout view with proper session cleanup and messaging"""
+    if request.user.is_authenticated:
+        # Get username for logging/messaging
+        username = request.user.get_full_name() or request.user.username
+
+        # Log the logout action for security auditing
+        messages.success(
+            request,
+            _('You have been successfully logged out, {}.'.format(username))
+        )
+
+        # Perform the logout
+        logout(request)
+
+        # Clear any session data that might remain
+        request.session.flush()
+
+        # Add additional security message
+        messages.info(
+            request,
+            _('For security reasons, please close your browser window when you are finished.')
+        )
+
+    # Redirect to landing page
+    return redirect('legal_research:landing')
+
+
 @login_required
 def dashboard(request):
     """Main dashboard view"""
