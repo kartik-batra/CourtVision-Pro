@@ -1,0 +1,57 @@
+[
+  {
+    "model": "legal_research.highcourt",
+    "pk": 1,
+    "fields": {
+      "name": "Delhi High Court",
+      "jurisdiction": "Delhi",
+      "code": "DHC",
+      "established_date": "1966-10-31",
+      "is_active": true
+    }
+  },
+  {
+    "model": "legal_research.highcourt",
+    "pk": 2,
+    "fields": {
+      "name": "Bombay High Court",
+      "jurisdiction": "Maharashtra, Goa, Dadra and Nagar Haveli",
+      "code": "BHC",
+      "established_date": "1862-08-14",
+      "is_active": true
+    }
+  },
+  {
+    "model": "legal_research.highcourt",
+    "pk": 3,
+    "fields": {
+      "name": "Calcutta High Court",
+      "jurisdiction": "West Bengal, Andaman and Nicobar Islands",
+      "code": "CHC",
+      "established_date": "1862-07-01",
+      "is_active": true
+    }
+  },
+  {
+    "model": "legal_research.highcourt",
+    "pk": 4,
+    "fields": {
+      "name": "Madras High Court",
+      "jurisdiction": "Tamil Nadu, Puducherry",
+      "code": "MHC",
+      "established_date": "1862-06-26",
+      "is_active": true
+    }
+  },
+  {
+    "model": "legal_research.highcourt",
+    "pk": 5,
+    "fields": {
+      "name": "Punjab and Haryana High Court",
+      "jurisdiction": "Punjab, Haryana, Chandigarh",
+      "code": "PHHC",
+      "established_date": "1975-11-01",
+      "is_active": true
+    }
+  }
+]
