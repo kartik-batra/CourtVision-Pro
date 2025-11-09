@@ -1,0 +1,38 @@
+# Testing Dependencies for CourtVision-Pro
+# Install with: pip install -r requirements-test.txt
+
+# Core Testing Framework
+pytest==7.4.3
+pytest-django==4.7.0
+
+# Coverage
+pytest-cov==4.1.0
+
+# Async Testing Support
+pytest-asyncio==0.21.1
+
+# Enhanced Mocking
+pytest-mock==3.12.0
+
+# Test Data Generation
+factory-boy==3.3.0
+faker==20.1.0
+
+# Time Mocking
+freezegun==1.4.0
+
+# HTTP Mocking for External APIs
+responses==0.24.1
+
+# Parallel Test Execution
+pytest-xdist==3.5.0
+
+# Fake Redis for Cache Mocking
+fakeredis==2.20.1
+
+# Code Quality
+flake8==6.1.0
+black==23.12.1
+
+# Security Vulnerability Check
+safety==3.0.1
