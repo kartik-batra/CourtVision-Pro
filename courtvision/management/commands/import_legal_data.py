@@ -65,6 +65,21 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Handle the command execution"""
         try:
+            # Check if dependencies are available
+            if not DATA_SOURCES_AVAILABLE:
+                self.stdout.write(self.style.ERROR(
+                    'Data import dependencies are not installed.\n\n'
+                    'Please install required dependencies first:\n'
+                    '  pip install -r requirements.txt\n\n'
+                    f'Missing dependency: {IMPORT_ERROR}\n\n'
+                    'Required packages include:\n'
+                    '  - aiohttp (for async HTTP requests)\n'
+                    '  - beautifulsoup4 (for web scraping)\n'
+                    '  - pdfplumber (for PDF processing)\n'
+                    '  - selenium (for dynamic content)\n'
+                ))
+                raise CommandError('Dependencies not installed')
+
             if options['verbose']:
                 logging.getLogger('legal_research').setLevel(logging.DEBUG)
 
