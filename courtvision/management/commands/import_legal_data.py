@@ -7,14 +7,21 @@ import logging
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from legal_research.data_sources import (
-    initialize_data_sources,
-    perform_data_import,
-    import_from_pdf,
-    schedule_data_import
-)
-
 logger = logging.getLogger(__name__)
+
+# Try to import data sources, but handle gracefully if dependencies aren't installed
+try:
+    from legal_research.data_sources import (
+        initialize_data_sources,
+        perform_data_import,
+        import_from_pdf,
+        schedule_data_import
+    )
+    DATA_SOURCES_AVAILABLE = True
+except ImportError as e:
+    DATA_SOURCES_AVAILABLE = False
+    IMPORT_ERROR = str(e)
+    logger.warning(f"Data sources not available: {e}")
 
 
 class Command(BaseCommand):
