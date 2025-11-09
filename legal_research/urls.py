@@ -1,7 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
-from django.conf.urls.i18n import i18n_patterns
 
 app_name = 'legal_research'
 
