@@ -63,3 +63,5 @@ selenium>=4.15.0
 # Additional ML Libraries
 joblib>=1.3.0
 nltk>=3.8.0
+
+django-redis==6.0.0
