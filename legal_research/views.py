@@ -140,26 +140,59 @@ def search_results(request):
         messages.warning(request, _('Please enter a search query'))
         return redirect('legal_research:search')
 
-    # Save search to history
+    # Import time for measuring search time
+    import time
+    start_time = time.time()
+
+    # Perform database search with pagination
+    page_obj, paginator, total_count = perform_database_search(query, filters, page=1)
+
+    search_time = time.time() - start_time
+
+    # Save search to history with actual results count and search time
     SearchHistory.objects.create(
         user=request.user,
         query_text=query,
         filters=filters,
-        results_count=0,  # Will be updated later
-        search_time=0.0   # Will be calculated later
+        results_count=total_count,
+        search_time=search_time
     )
 
-    # Perform search (mock implementation for now)
-    results = perform_mock_search(query, filters)
+    # Get filter options for template context
+    high_courts = HighCourt.objects.filter(is_active=True).order_by('name')
+    tags = Tag.objects.all().order_by('name')
+    case_types = Case.CASE_TYPES if hasattr(Case, 'CASE_TYPES') else [
+        ('judgment', 'Judgment'),
+        ('order', 'Order'),
+        ('appeal', 'Appeal'),
+    ]
+
+    # Get user's suits if available
+    user_profile = getattr(request.user, 'userprofile', None)
+    user_suits = []
+    if user_profile:
+        user_suits = user_profile.get_active_suits()
+
+    # Get recent searches for suggestions
+    recent_searches = SearchHistory.objects.filter(user=request.user).order_by('-timestamp')[:10]
 
     context = {
         'query': query,
-        'results': results,
+        'results': page_obj.object_list,
         'filters': filters,
-        'total_results': len(results),
+        'total_results': total_count,
+        'page_obj': page_obj,
+        'is_paginated': paginator.num_pages > 1,
+        'high_courts': high_courts,
+        'tags': tags,
+        'case_types': case_types,
+        'user_suits': user_suits,
+        'recent_searches': recent_searches,
+        'user_profile': user_profile,
+        'show_results': True,  # Flag to show results instead of initial state
     }
 
-    return render(request, 'legal_research/search/results.html', context)
+    return render(request, 'legal_research/search/search.html', context)
 
 
 @csrf_exempt
@@ -171,10 +204,50 @@ def ajax_search_suggestions(request):
     if len(query) < 2:
         return JsonResponse({'suggestions': []})
 
-    # Mock suggestions - in production, this would query the database
-    suggestions = generate_mock_suggestions(query)
+    # Real database suggestions - search Case titles and citations containing query
+    # Order by view_count DESC to show most popular cases first
+    from django.db.models import Q
 
-    return JsonResponse({'suggestions': suggestions})
+    cases = Case.objects.filter(
+        is_published=True
+    ).filter(
+        Q(title__icontains=query) | Q(citation__icontains=query)
+    ).order_by('-view_count')[:10]
+
+    # Build suggestions from real cases
+    suggestions = []
+    for case in cases:
+        # Add title suggestion if it contains the query
+        if query.lower() in case.title.lower():
+            suggestions.append({
+                'text': case.title,
+                'type': 'Case Title',
+                'count': Case.objects.filter(title__icontains=case.title[:50]).count()
+            })
+
+        # Add citation suggestion if it contains the query and is different
+        if query.lower() in case.citation.lower() and case.citation != case.title:
+            suggestions.append({
+                'text': case.citation,
+                'type': 'Citation',
+                'count': Case.objects.filter(citation__icontains=case.citation).count()
+            })
+
+    # Limit to top 10 unique suggestions
+    seen_texts = set()
+    unique_suggestions = []
+    for suggestion in suggestions:
+        if suggestion['text'] not in seen_texts:
+            seen_texts.add(suggestion['text'])
+            unique_suggestions.append(suggestion)
+        if len(unique_suggestions) >= 10:
+            break
+
+    # If no real suggestions, provide some helpful defaults
+    if not unique_suggestions:
+        unique_suggestions = generate_mock_suggestions(query)
+
+    return JsonResponse({'suggestions': unique_suggestions})
 
 
 @csrf_exempt
@@ -188,35 +261,30 @@ def ajax_search_results(request):
     if not query:
         return JsonResponse({'error': 'Query is required'}, status=400)
 
-    # Perform search
-    results = perform_mock_search(query, filters)
+    # Perform database search with pagination
+    page_obj, paginator, total_count = perform_database_search(query, filters, page)
 
-    # Pagination
-    items_per_page = 10
-    paginator = Paginator(results, items_per_page)
-    page_obj = paginator.get_page(page)
-
-    # Prepare response
+    # Prepare response data matching expected JavaScript format
     response_data = {
         'results': [
             {
-                'id': str(result['id']),
-                'title': result['title'],
-                'summary': result['summary'],
-                'citation': result['citation'],
-                'court': result['court'],
-                'judgment_date': result['judgment_date'],
-                'tags': result['tags'],
-                'relevance_score': result['relevance_score'],
+                'id': str(case.id),
+                'title': case.title,
+                'summary': case.headnotes[:200] + '...' if case.headnotes else case.case_text[:200] + '...',
+                'citation': case.citation,
+                'court': case.court.name,
+                'judgment_date': case.judgment_date.strftime('%Y-%m-%d'),
+                'tags': [tag.name for tag in case.tags.all()],
+                'relevance_score': case.relevance_score,
             }
-            for result in page_obj.object_list
+            for case in page_obj.object_list
         ],
         'pagination': {
             'current_page': page_obj.number,
             'total_pages': paginator.num_pages,
             'has_previous': page_obj.has_previous(),
             'has_next': page_obj.has_next(),
-            'total_items': paginator.count,
+            'total_items': total_count,
         }
     }
 
@@ -648,8 +716,84 @@ def api_process_upload(request):
 
 
 # Helper Functions
+def perform_database_search(query, filters, page=1):
+    """
+    Perform real database search using Django ORM with Q objects for multi-field searching
+    Parameters: query (string), filters (dict), page (int)
+    Returns: tuple of (page_obj, paginator, total_count)
+    """
+    from datetime import timedelta
+
+    # Start with all published cases
+    queryset = Case.objects.filter(is_published=True).select_related('court').prefetch_related('tags')
+
+    # Apply text search using Q objects for multi-field searching
+    if query:
+        query_objects = Q()
+        for term in query.split():  # Split for multi-word searches
+            query_objects |= (
+                Q(title__icontains=term) |
+                Q(case_text__icontains=term) |
+                Q(headnotes__icontains=term) |
+                Q(petitioners__icontains=term) |
+                Q(respondents__icontains=term) |
+                Q(citation__icontains=term)
+            )
+        queryset = queryset.filter(query_objects)
+
+    # Apply filters
+    # Court filter
+    court_id = filters.get('court')
+    if court_id:
+        queryset = queryset.filter(court_id=court_id)
+
+    # Case type filter
+    case_type = filters.get('case_type')
+    if case_type:
+        queryset = queryset.filter(case_type=case_type)
+
+    # Date range filters
+    date_from = filters.get('date_from')
+    date_to = filters.get('date_to')
+    if date_from:
+        queryset = queryset.filter(judgment_date__gte=date_from)
+    if date_to:
+        queryset = queryset.filter(judgment_date__lte=date_to)
+
+    # Tags filter (list of tag IDs)
+    tags = filters.get('tags', [])
+    if isinstance(tags, str):
+        tags = [tags]  # Convert single tag to list
+    if tags:
+        queryset = queryset.filter(tags__id__in=tags)
+
+    # Quick filters
+    # Recent cases (last 5 years)
+    if filters.get('recent') == 'recent':
+        five_years_ago = timezone.now().date() - timedelta(days=365*5)
+        queryset = queryset.filter(judgment_date__gte=five_years_ago)
+
+    # Landmark judgments (high relevance score)
+    if filters.get('landmark') == 'landmark':
+        queryset = queryset.filter(relevance_score__gt=80)
+
+    # Strong precedents (highly viewed cases)
+    if filters.get('precedent') == 'precedent':
+        queryset = queryset.filter(view_count__gt=100)
+
+    # Order by relevance_score DESC, then judgment_date DESC (prioritize AI relevance score)
+    queryset = queryset.order_by('-relevance_score', '-judgment_date')
+
+    # Pagination (10 items per page)
+    items_per_page = 10
+    paginator = Paginator(queryset, items_per_page)
+    page_obj = paginator.get_page(page)
+
+    return page_obj, paginator, paginator.count
+
+
 def perform_mock_search(query, filters):
-    """Mock search implementation"""
+    """Mock search implementation - kept for compatibility"""
     # Generate mock search results
     results = []
     for i in range(random.randint(5, 20)):

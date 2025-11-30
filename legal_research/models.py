@@ -148,6 +148,15 @@ class Case(models.Model):
         ('revision', 'Revision'),
     ], default='judgment', verbose_name=_("Case Type"))
 
+    # Case types for template use
+    CASE_TYPES = [
+        ('judgment', 'Judgment'),
+        ('order', 'Order'),
+        ('interim', 'Interim Order'),
+        ('appeal', 'Appeal'),
+        ('revision', 'Revision'),
+    ]
+
     # Metadata
     relevance_score = models.FloatField(default=0.0, verbose_name=_("Relevance Score"))
     is_published = models.BooleanField(default=False, verbose_name=_("Published"))

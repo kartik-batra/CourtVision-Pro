@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static widget_tweaks %}
+{% load i18n static %}
 
 {% block title %}{% trans "Advanced Search - CourtVision Pro" %}{% endblock %}
 
@@ -37,7 +37,10 @@
 
                     <!-- Main Search Input -->
                     <div class="search-input-group mb-3">
-                        {{ search_input|add_class:"form-control form-control-lg"|attr:"id:searchInput"|attr:"placeholder:Search for cases, statutes, or legal principles..." }}
+                        <input type="text" name="query" id="searchInput"
+                               class="form-control form-control-lg"
+                               placeholder="{% trans 'Search for cases, statutes, or legal principles...' %}"
+                               value="{{ query|default:'' }}">
                         <i class="bi bi-search search-icon"></i>
                         <div id="searchSuggestions" class="search-suggestions"></div>
                     </div>
@@ -183,62 +186,68 @@
 
             <!-- Results List -->
             <div id="searchResults">
-                <!-- Initial State -->
-                <div class="text-center py-5">
-                    <i class="bi bi-search display-1 text-muted mb-3"></i>
-                    <h4>{% trans "Start Your Legal Research" %}</h4>
-                    <p class="text-muted mb-4">
-                        {% trans "Enter search terms above to find relevant cases, statutes, and legal precedents" %}
-                    </p>
+                <!-- Show Initial State or Results -->
+                {% if show_results %}
+                    <!-- Results are loaded via JavaScript/AJAX -->
+                    <!-- The search results will be populated by JavaScript -->
+                {% else %}
+                    <!-- Initial State -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-search display-1 text-muted mb-3"></i>
+                        <h4>{% trans "Start Your Legal Research" %}</h4>
+                        <p class="text-muted mb-4">
+                            {% trans "Enter search terms above to find relevant cases, statutes, and legal precedents" %}
+                        </p>
 
-                    <!-- Suggested Searches -->
-                    <div class="row g-3 mt-4">
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">{% trans "Contract Law" %}</h6>
-                                    <p class="card-text small text-muted">{% trans "Breach of contract cases and precedents" %}</p>
-                                    <button class="btn btn-sm btn-outline-primary suggested-search" data-query="contract breach">
-                                        {% trans "Search" %}
-                                    </button>
+                        <!-- Suggested Searches -->
+                        <div class="row g-3 mt-4">
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">{% trans "Contract Law" %}</h6>
+                                        <p class="card-text small text-muted">{% trans "Breach of contract cases and precedents" %}</p>
+                                        <button class="btn btn-sm btn-outline-primary suggested-search" data-query="contract breach">
+                                            {% trans "Search" %}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">{% trans "Property Disputes" %}</h6>
-                                    <p class="card-text small text-muted">{% trans "Landmark property law judgments" %}</p>
-                                    <button class="btn btn-sm btn-outline-primary suggested-search" data-query="property dispute">
-                                        {% trans "Search" %}
-                                    </button>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">{% trans "Property Disputes" %}</h6>
+                                        <p class="card-text small text-muted">{% trans "Landmark property law judgments" %}</p>
+                                        <button class="btn btn-sm btn-outline-primary suggested-search" data-query="property dispute">
+                                            {% trans "Search" %}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">{% trans "Commercial Law" %}</h6>
-                                    <p class="card-text small text-muted">{% trans "Business and commercial disputes" %}</p>
-                                    <button class="btn btn-sm btn-outline-primary suggested-search" data-query="commercial dispute">
-                                        {% trans "Search" %}
-                                    </button>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">{% trans "Commercial Law" %}</h6>
+                                        <p class="card-text small text-muted">{% trans "Business and commercial disputes" %}</p>
+                                        <button class="btn btn-sm btn-outline-primary suggested-search" data-query="commercial dispute">
+                                            {% trans "Search" %}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card border-0 bg-light">
-                                <div class="card-body text-center">
-                                    <h6 class="card-title">{% trans "Family Law" %}</h6>
-                                    <p class="card-text small text-muted">{% trans "Family and marriage law cases" %}</p>
-                                    <button class="btn btn-sm btn-outline-primary suggested-search" data-query="family law">
-                                        {% trans "Search" %}
-                                    </button>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">{% trans "Family Law" %}</h6>
+                                        <p class="card-text small text-muted">{% trans "Family and marriage law cases" %}</p>
+                                        <button class="btn btn-sm btn-outline-primary suggested-search" data-query="family law">
+                                            {% trans "Search" %}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
 
             <!-- Loading State -->
